@@ -1,48 +1,80 @@
-Overview
-========
+# gsd-canary-dags
 
-Welcome to Astronomer! This project was generated after you ran 'astro dev init' using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine.
+Canary Dags (directed acyclic graphs) for Astronomer deployments running Apache
+Airflow. They verify that the pieces an environment depends on — Airflow
+Variables, Connections, and by extension the configured secrets backend — resolve
+correctly. Run them on demand after you push code or change an environment to
+confirm the environment is wired correctly.
 
-Project Contents
-================
+## Repository layout
 
-Your Astro project contains the following files and folders:
+This repository holds two self-contained Astro projects, one for each Airflow
+major version. A single Astro Runtime image is either Airflow 2 or Airflow 3, so
+each version gets its own deployable project rather than one project with version
+shims.
 
-- dags: This folder contains the Python files for your Airflow DAGs. By default, this directory includes one example DAG:
-    - `example_astronauts`: This DAG shows a simple ETL pipeline example that queries the list of astronauts currently in space from the Open Notify API and prints a statement for each astronaut. The DAG uses the TaskFlow API to define tasks in Python, and dynamic task mapping to dynamically print a statement for each astronaut. For more on how this DAG works, see our [Getting started tutorial](https://www.astronomer.io/docs/learn/get-started-with-airflow).
-- Dockerfile: This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
-- include: This folder contains any additional files that you want to include as part of your project. It is empty by default.
-- packages.txt: Install OS-level packages needed for your project by adding them to this file. It is empty by default.
-- requirements.txt: Install Python packages needed for your project by adding them to this file. It is empty by default.
-- plugins: Add custom or community plugins for your project to this file. It is empty by default.
-- airflow_settings.yaml: Use this local-only file to specify Airflow Connections, Variables, and Pools instead of entering them in the Airflow UI as you develop DAGs in this project.
+| Folder | Astro Runtime | Airflow | Dag idioms |
+| --- | --- | --- | --- |
+| `airflow-2/` | 13.8.0 | 2.11.2 | `airflow.decorators`, `airflow.models`, `airflow.hooks.base` |
+| `airflow-3/` | 3.1-17 | 3.1.8 | Task SDK (`airflow.sdk`) |
 
-Deploy Your Project Locally
-===========================
+Both projects contain the same two canaries with identical behavior:
 
-1. Start Airflow on your local machine by running 'astro dev start'.
+- `variable_testing` checks that each Airflow Variable resolves.
+- `connection_testing` checks that each Airflow Connection resolves, and optionally that its destination is reachable.
 
-This command will spin up 4 Docker containers on your machine, each for a different Airflow component:
+## What the canaries do
 
-- Postgres: Airflow's Metadata Database
-- Webserver: The Airflow component responsible for rendering the Airflow UI
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
-- Triggerer: The Airflow component responsible for triggering deferred tasks
+- Run on demand (`schedule=None`). Trigger them manually from the Astro UI, the Astro CLI, or the Airflow REST API.
+- Read the list of Variables or Connections from a Dag `param` (`type="array"`) that you can edit in the trigger form, so no code change is needed to adjust coverage.
+- Check one item per mapped task through dynamic task mapping (`.expand`), so you see exactly which item failed.
+- Report every result, then fail. Each check returns a structured result instead of raising, and a final `summarize` task logs a pass/fail table and fails the run once if anything failed. One missing Variable no longer hides the other checks.
+- Use no retries (`retries=0`). A canary must reflect real state, and a retry would mask a transient failure.
 
-2. Verify that all 4 Docker containers were created by running 'docker ps'.
+### Secrets backends
 
-Note: Running 'astro dev start' will start your project with the Airflow Webserver exposed at port 8080 and Postgres exposed at port 5432. If you already have either of those ports allocated, you can either [stop your existing Docker containers or change the port](https://www.astronomer.io/docs/astro/cli/troubleshoot-locally#ports-are-not-available-for-my-local-airflow-webserver).
+`Variable.get()` and `BaseHook.get_connection()` walk the standard resolution
+chain — the configured secrets backend, then environment variables, then the
+metadata database — so the canaries exercise the secrets backend as a side effect.
+This is basic retrievability: it confirms that a value comes back, not which
+source served it.
 
-3. Access the Airflow UI for your local Airflow project. To do so, go to http://localhost:8080/ and log in with 'admin' for both your Username and Password.
+### Connection connectivity
 
-You should also be able to access your Postgres Database at 'localhost:5432/postgres'.
+By default, `connection_testing` only confirms that each Connection resolves. To
+also confirm that the destination system is reachable, the canary calls
+`Connection.test_connection()` for every Connection when the
+`AIRFLOW__CORE__TEST_CONNECTION` environment variable is set to `Enabled`.
 
-Deploy Your Project to Astronomer
-=================================
+Connectivity testing is off by default because it reaches external systems, and
+Airflow disables connection testing by default for security. Enable it
+temporarily, run the canary, then remove the variable. Each project README
+describes how to set the variable locally and on a Deployment. Connectivity
+testing also requires the provider package for each `conn_type` and network access
+from the workers to the destination.
 
-If you have an Astronomer account, pushing code to a Deployment on Astronomer is simple. For deploying instructions, refer to Astronomer documentation: https://www.astronomer.io/docs/astro/deploy-code/
+## Work with a project
 
-Contact
-=======
+Each folder is a standard Astro project. From inside `airflow-2/` or `airflow-3/`:
 
-The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support.
+```bash
+astro dev parse     # validate that Dags parse with no import errors
+astro dev start     # run Airflow locally
+astro dev pytest    # run the Dag-integrity tests
+astro deploy        # push code to an Astro Deployment on the matching Astro Runtime
+```
+
+Trigger a canary on your Deployment and choose what it checks:
+
+1. In the Astro UI, open your Deployment, then open the Airflow UI.
+2. Trigger the `variable_testing` or `connection_testing` Dag with config. Edit the `variables` or `connections` field to set what the canary checks, or leave it unchanged to check the default list.
+3. Open the `summarize` task's logs to read the results. `summarize` logs a pass/fail table for every check and fails the run if any check failed, so the run passes only when every item resolves.
+
+## History
+
+This started as a single Astro project whose canary Dags had a Python closure
+bug: the `@task` functions were defined in a `for` loop and captured the loop
+variable, so every task checked only the last item. The Dags also used
+Airflow-2-only APIs (`schedule_interval`, `airflow.operators.empty`). The
+repository was split by version and the canaries rewritten to fix the bug and use
+version-appropriate, configurable patterns.
