@@ -1,8 +1,9 @@
 """Dag-integrity tests for the canary project.
 
 Verify that every Dag parses without import errors, is tagged, exposes the
-expected Dag ids, and — because these are canaries that must reflect real state —
-uses no retries. The ``retries==0`` check is also a regression guard: the stock
+expected Dag ids, and uses no retries. Canaries must reflect real state, so a
+retry would mask a transient failure. The ``retries==0`` check is also a
+regression guard: the stock
 Astro template asserted ``retries>=2``, which is wrong for a canary.
 """
 

@@ -1,4 +1,4 @@
-# Canary Dags — Airflow 3
+# Canary Dags for Airflow 3
 
 Astro project targeting Astro Runtime 3.1-17 (Apache Airflow 3.1.8).
 

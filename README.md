@@ -1,9 +1,8 @@
 # gsd-canary-dags
 
 Canary Dags (directed acyclic graphs) for Astronomer deployments running Apache
-Airflow. They verify that the pieces an environment depends on — Airflow
-Variables, Connections, and by extension the configured secrets backend — resolve
-correctly. Run them on demand after you push code or change an environment to
+Airflow. They verify that the pieces an environment depends on resolve correctly:
+Airflow Variables, Connections, and by extension the configured secrets backend. Run them on demand after you push code or change an environment to
 confirm the environment is wired correctly.
 
 ## Repository layout
@@ -34,8 +33,9 @@ Both projects contain the same two canaries with identical behavior:
 ### Secrets backends
 
 `Variable.get()` and `BaseHook.get_connection()` walk the standard resolution
-chain — the configured secrets backend, then environment variables, then the
-metadata database — so the canaries exercise the secrets backend as a side effect.
+chain: the configured secrets backend, then environment variables, then the
+metadata database. Because of this, the canaries exercise the secrets backend as
+a side effect.
 This is basic retrievability: it confirms that a value comes back, not which
 source served it.
 

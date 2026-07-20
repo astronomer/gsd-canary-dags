@@ -1,4 +1,4 @@
-# Canary Dags — Airflow 2
+# Canary Dags for Airflow 2
 
 Astro project targeting Astro Runtime 13.8.0 (Apache Airflow 2.11.2).
 
