@@ -60,8 +60,16 @@ astro deployment variable create AIRFLOW__CORE__TEST_CONNECTION=Enabled \
 ```
 
 You can also set the variable in the Astro UI under your Deployment's environment
-variables. Connectivity testing requires the provider package for each `conn_type`
-and network access from the workers to the destination.
+variables.
+
+Connectivity testing calls each destination through the connection's hook, so
+each `conn_type` needs its [provider package](https://airflow.apache.org/docs/apache-airflow-providers/packages-ref.html)
+installed and network access from the workers to the destination. Add any missing
+packages to `requirements.txt` (for example, `apache-airflow-providers-snowflake`
+for `snowflake` connections). A `conn_type` with no installed provider is reported
+as an `Unknown hook type` failure. Astro Runtime for Airflow 3 ships a smaller
+default provider set than Airflow 2, so more connection types need their package
+added explicitly.
 
 ## Layout
 
