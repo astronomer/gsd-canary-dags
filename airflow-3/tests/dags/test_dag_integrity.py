@@ -2,9 +2,8 @@
 
 Verify that every Dag parses without import errors, is tagged, exposes the
 expected Dag ids, and uses no retries. Canaries must reflect real state, so a
-retry would mask a transient failure. The ``retries==0`` check is also a
-regression guard: the stock
-Astro template asserted ``retries>=2``, which is wrong for a canary.
+retry would mask a transient failure, and the ``retries==0`` check guards against
+a retry policy creeping back in.
 """
 
 from __future__ import annotations

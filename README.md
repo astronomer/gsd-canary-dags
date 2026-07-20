@@ -2,8 +2,9 @@
 
 Canary Dags (directed acyclic graphs) for Astronomer deployments running Apache
 Airflow. They verify that the pieces an environment depends on resolve correctly:
-Airflow Variables, Connections, and by extension the configured secrets backend. Run them on demand after you push code or change an environment to
-confirm the environment is wired correctly.
+Airflow Variables, Connections, and by extension the configured secrets backend.
+Run them on demand after you push code or change configuration to confirm the
+environment is wired correctly.
 
 ## Repository layout
 
@@ -27,7 +28,7 @@ Both projects contain the same two canaries with identical behavior:
 - Run on demand (`schedule=None`). Trigger them manually from the Astro UI, the Astro CLI, or the Airflow REST API.
 - Read the list of Variables or Connections from a Dag `param` (`type="array"`) that you can edit in the trigger form, so no code change is needed to adjust coverage.
 - Check one item per mapped task through dynamic task mapping (`.expand`), so you see exactly which item failed.
-- Report every result, then fail. Each check returns a structured result instead of raising, and a final `summarize` task logs a pass/fail table and fails the run once if anything failed. One missing Variable no longer hides the other checks.
+- Report every result, then fail. Each check returns a structured result instead of raising, so one missing Variable does not hide the others. A final `summarize` task logs a pass/fail table and fails the run once if any check failed.
 - Use no retries (`retries=0`). A canary must reflect real state, and a retry would mask a transient failure.
 
 ### Secrets backends
@@ -69,12 +70,3 @@ Trigger a canary on your Deployment and choose what it checks:
 1. In the Astro UI, open your Deployment, then open the Airflow UI.
 2. Trigger the `variable_testing` or `connection_testing` Dag with config. Edit the `variables` or `connections` field to set what the canary checks, or leave it unchanged to check the default list.
 3. Open the `summarize` task's logs to read the results. `summarize` logs a pass/fail table for every check and fails the run if any check failed, so the run passes only when every item resolves.
-
-## History
-
-This started as a single Astro project whose canary Dags had a Python closure
-bug: the `@task` functions were defined in a `for` loop and captured the loop
-variable, so every task checked only the last item. The Dags also used
-Airflow-2-only APIs (`schedule_interval`, `airflow.operators.empty`). The
-repository was split by version and the canaries rewritten to fix the bug and use
-version-appropriate, configurable patterns.
