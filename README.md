@@ -1,4 +1,4 @@
-# gsd-canary-dags
+# GSD Canary Dags
 
 Canary Dags (directed acyclic graphs) for Astronomer deployments running Apache
 Airflow. They verify that the pieces an environment depends on resolve correctly:
