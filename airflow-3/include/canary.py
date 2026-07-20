@@ -46,8 +46,12 @@ def check_connection(conn_id: str) -> dict:
 
     Always confirms that the Connection resolves. When connection testing is
     enabled through ``AIRFLOW__CORE__TEST_CONNECTION=Enabled``, also calls the
-    destination system through ``Connection.test_connection()`` and reports
-    whether it is reachable.
+    destination system through the connection's hook
+    (``get_hook().test_connection()``) and reports whether it is reachable.
+
+    Note: the Airflow 3 Task SDK ``Connection`` has no ``test_connection()``
+    method (unlike the Airflow 2 ORM model), so connectivity goes through the
+    hook returned by ``get_hook()``.
     """
     result: dict = {"name": conn_id, "kind": "connection", "ok": False, "error": None}
 
@@ -71,7 +75,8 @@ def check_connection(conn_id: str) -> dict:
         return result
 
     try:
-        status, message = conn.test_connection()
+        # Airflow 3 SDK Connection has no test_connection(); go through the hook.
+        status, message = conn.get_hook().test_connection()
     except Exception as exc:  # noqa: BLE001 - a canary must report every failure
         result["error"] = f"connectivity test errored: {type(exc).__name__}: {exc}"
         log.error("FAIL connection '%s' connectivity test errored: %s", conn_id, exc)

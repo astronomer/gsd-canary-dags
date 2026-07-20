@@ -5,7 +5,8 @@ verifies that each Connection resolves through the standard resolution chain (th
 configured secrets backend, then environment variables, then the metadata
 database). When connection testing is enabled through
 ``AIRFLOW__CORE__TEST_CONNECTION=Enabled``, it also calls each destination system
-through ``Connection.test_connection()`` to confirm the destination is reachable.
+through the connection's hook (``get_hook().test_connection()``) to confirm the
+destination is reachable.
 
 The list of Connections is a Dag param, so you can override it at trigger time
 without editing code. Each Connection is checked in its own mapped task instance
