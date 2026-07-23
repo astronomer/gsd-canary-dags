@@ -16,7 +16,7 @@ shims.
 | Folder | Astro Runtime | Airflow | Dag idioms |
 | --- | --- | --- | --- |
 | `airflow-2/` | 13.8.0 | 2.11.2 | `airflow.decorators`, `airflow.models`, `airflow.hooks.base` |
-| `airflow-3/` | 3.1-17 | 3.1.8 | Task SDK (`airflow.sdk`) |
+| `airflow-3/` | 3.3-2 | 3.3.0 | Task SDK (`airflow.sdk`) |
 
 Both projects contain the same two canaries with identical behavior:
 

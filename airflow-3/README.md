@@ -1,6 +1,6 @@
 # Canary Dags for Airflow 3
 
-Astro project targeting Astro Runtime 3.1-17 (Apache Airflow 3.1.8).
+Astro project targeting Astro Runtime 3.3-2 (Apache Airflow 3.3.0).
 
 See the [repository README](../README.md) for the full description. This project
 uses the Airflow 3 Task SDK (`airflow.sdk`) for imports. The Airflow 2 equivalent
@@ -76,10 +76,5 @@ destination.
 ## Layout
 
 - `dags/` contains the two canary Dags with Task SDK imports.
-- `include/canary.py` contains the shared, import-light check and report helpers.
+- `include/canary.py` holds the shared, import-light check and report helpers.
 - `tests/dags/test_dag_integrity.py` checks parsing, tags, expected ids, and `retries==0`.
-
-## Airflow 3 notes
-
-- Imports use `from airflow.sdk import dag, task, Param, Variable, BaseHook`.
-- `include/` sits at the Dag-bundle root, so `from include.canary import ...` resolves correctly. Bare imports from `dags/` change under Airflow 3 bundles.

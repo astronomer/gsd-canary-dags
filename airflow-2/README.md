@@ -74,5 +74,5 @@ destination.
 ## Layout
 
 - `dags/` contains the two canary Dags.
-- `include/canary.py` contains the shared, import-light check and report helpers.
+- `include/canary.py` holds the shared, import-light check and report helpers.
 - `tests/dags/test_dag_integrity.py` checks parsing, tags, expected ids, and `retries==0`.
